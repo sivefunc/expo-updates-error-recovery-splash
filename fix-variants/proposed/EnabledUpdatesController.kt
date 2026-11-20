@@ -130,7 +130,7 @@ class EnabledUpdatesController(
       }
 
       override fun onRequestRelaunch(shouldRunReaper: Boolean, callback: LauncherCallback) {
-        // Error recovery relaunches the app after a fatal error.
+        // Only error recovery calls this, after a fatal error destroyed the React host.
         relaunchReactApplication(shouldRunReaper, callback, recreateActivityAfterRestart = true)
       }
     },
