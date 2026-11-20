@@ -47,7 +47,10 @@ SIMULATOR_UDID=<udid> sh scripts/run-scenario-ios.sh build-logs/ios/expoupdatese
 ```
 
 The same 3 launches, without the "Reload" step. The second launch also stays on the splash screen,
-through other code than on Android.
+through other code than on Android: the app renders, but `expo-splash-screen` no longer has the
+observer that hides the splash screen. `scripts/use-splash-fix.sh <58.0.14|proposed>` copies the
+published files or the proposed fix of `expo-splash-screen` into `node_modules` (run it before
+`scripts/build-release-ios.sh`).
 
 ## Variants
 
@@ -70,4 +73,5 @@ through other code than on Android.
 In every run, the third launch rendered the embedded update and "Reload" reloaded the JS.
 
 iOS (iPhone 18 Pro simulator, iOS 27.2, `58.0.22`): the second launch stayed on the splash screen
-3 of 3 times, and still after 60 seconds in a fourth run. The proposed fix is for Android only.
+3 of 3 times, and still after 60 seconds in a fourth run. With the proposed `expo-splash-screen`
+fix, it rendered the embedded update 10 of 10 times, and "Reload" still worked.
