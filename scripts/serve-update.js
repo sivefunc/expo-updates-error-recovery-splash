@@ -1,6 +1,7 @@
 // A minimal expo-updates server (protocol 1) for this reproduction. It serves the update in
 // updates/current, which scripts/publish-update.sh writes. Without updates/current, it answers
-// 204 (no update). Run it with `node scripts/serve-update.js`, then `adb reverse tcp:3000 tcp:3000`.
+// 204 (no update). Run it with `node scripts/serve-update.js`. On Android, also run
+// `adb reverse tcp:3000 tcp:3000`; the iOS simulator reaches the Mac directly.
 const crypto = require('crypto');
 const fs = require('fs');
 const http = require('http');
@@ -26,10 +27,10 @@ function asset(relativePath, ext, contentType) {
   };
 }
 
-function manifest() {
+function manifest(platform) {
   const metadata = JSON.parse(fs.readFileSync(path.join(UPDATE_DIR, 'metadata.json'), 'utf8'));
-  const android = metadata.fileMetadata.android;
-  const launchAsset = asset(android.bundle, 'bundle', 'application/javascript');
+  const files = metadata.fileMetadata[platform];
+  const launchAsset = asset(files.bundle, 'bundle', 'application/javascript');
   const hex = crypto.createHash('sha256').update(launchAsset.hash).digest('hex');
   const id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
   return {
@@ -37,7 +38,7 @@ function manifest() {
     createdAt: fs.statSync(path.join(UPDATE_DIR, 'metadata.json')).mtime.toISOString(),
     runtimeVersion: RUNTIME_VERSION,
     launchAsset,
-    assets: android.assets.map((a) => asset(a.path, a.ext, CONTENT_TYPES[a.ext] ?? 'application/octet-stream')),
+    assets: files.assets.map((a) => asset(a.path, a.ext, CONTENT_TYPES[a.ext] ?? 'application/octet-stream')),
     metadata: {},
     extra: {
       expoClient: JSON.parse(fs.readFileSync(path.join(UPDATE_DIR, 'expoConfig.json'), 'utf8')),
@@ -52,14 +53,14 @@ http
     if (url.pathname === '/api/manifest') {
       const headers = { 'expo-protocol-version': '1', 'expo-sfv-version': '0', 'cache-control': 'private, max-age=0' };
       if (
-        req.headers['expo-platform'] !== 'android' ||
+        !['android', 'ios'].includes(req.headers['expo-platform']) ||
         req.headers['expo-runtime-version'] !== RUNTIME_VERSION ||
         !fs.existsSync(path.join(UPDATE_DIR, 'metadata.json'))
       ) {
         res.writeHead(204, headers).end();
         return;
       }
-      const body = JSON.stringify(manifest());
+      const body = JSON.stringify(manifest(req.headers['expo-platform']));
       console.log('  serving update', JSON.parse(body).id);
       res.writeHead(200, { ...headers, 'content-type': 'application/json' }).end(body);
     } else if (url.pathname === '/assets') {
