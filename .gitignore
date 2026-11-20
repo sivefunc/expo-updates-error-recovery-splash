@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# outputs of the reproduction scripts
+updates/
+build-logs/
